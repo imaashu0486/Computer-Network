@@ -1,86 +1,47 @@
-// Client Side program to test
-// the TCP server that returns
-// a 'hi client' message
-
-#include <arpa/inet.h>
-#include <netinet/in.h>
+// client.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <unistd.h>     // for close()
+#include <arpa/inet.h>  // for inet_addr, sockaddr_in
 
-// PORT number
-#define PORT 4444
+#define PORT 8080
 
-int main()
-{
-    // Socket id
-    int clientSocket, ret;
+int main() {
+    int sock = 0;
+    struct sockaddr_in serv_addr;
+    char *message = "Hello";
     
-   
-    struct sockaddr_in serverAddr, cliAddr;  // Declare serverAddr
-
-
-
-    // Client socket structure
-    //struct sockaddr_in cliAddr;
-
-    // char array to store incoming message
-    char buffer[1024];
-
-    // Creating socket id
-    clientSocket = socket(AF_INET,
-                          SOCK_STREAM, 0);
-
-    if (clientSocket < 0) {
-        printf("Error in connection.\n");
-        exit(1);
-    }
-    printf("Client Socket is created.\n");
-
-    // Initializing socket structure with NULL
-    memset(&cliAddr, '\0', sizeof(cliAddr));
-
-    // Initializing buffer array with NULL
-    memset(buffer, '\0', sizeof(buffer));
-
-    // Assigning port number and IP address
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(PORT);
-
-    // 127.0.0.1 is Loopback IP
-    serverAddr.sin_addr.s_addr
-        = inet_addr("127.0.0.1");
-
-    // connect() to connect to the server
-    ret = connect(clientSocket,
-                  (struct sockaddr*)&serverAddr,
-                  sizeof(serverAddr));
-
-    if (ret < 0) {
-        printf("Error in connection.\n");
-        exit(1);
+    // 1. Create socket
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror("Socket creation error");
+        return -1;
     }
 
-    printf("Connected to Server.\n");
+    // 2. Define server address
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
 
-    while (1) {
-
-        // recv() receives the message
-        // from server and stores in buffer
-        if (recv(clientSocket, buffer, 1024, 0)
-            < 0) {
-            printf("Error in receiving data.\n");
-        }
-
-        // Printing the message on screen
-        else {
-            printf("Server: %s\n", buffer);
-            bzero(buffer, sizeof(buffer));
-        }
+    // Convert IPv4 address from text to binary form
+    if (inet_pton(AF_INET, "192.168.0.127", &serv_addr.sin_addr) <= 0) {
+        perror("Invalid address or Address not supported");
+        return -1;
     }
+
+    // 3. Connect to server
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Connection Failed");
+        return -1;
+    }
+
+    // 4. Send message
+    send(sock, message, strlen(message), 0);
+    printf("Message sent to server: %s\n", message);
+
+    // 5. Close socket
+    close(sock);
 
     return 0;
 }
+
